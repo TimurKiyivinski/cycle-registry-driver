@@ -22,5 +22,8 @@
   "bugs": {
     "url": "https://github.com/TimurKiyivinski/cycle-registry-driver/issues"
   },
-  "homepage": "https://github.com/TimurKiyivinski/cycle-registry-driver#readme"
+  "homepage": "https://github.com/TimurKiyivinski/cycle-registry-driver#readme",
+  "dependencies": {
+    "xstream": "^9.3.0"
+  }
 }

@@ -4,6 +4,8 @@ function Registry (url) {
   // TODO: Use Auth
   this.url = url
 
+  this.callbacks = {}
+
   this.fetchImageTags = image => fetch(`${this.url}/v2/${image}/tags/list`)
 
   this.fetchImageManifest = (image, tag) => {
@@ -58,13 +60,13 @@ function Registry (url) {
   }
 
   // Main function handler
-  this.call = request => {
+  this.call = (category, request) => {
     if (request === 'catalog') {
-      this.getCatalog(this.receive)
+      this.getCatalog(this.callbacks[category])
     } else if (request === 'catalog::tags') {
-      this.getCatalogWithTags(this.receive)
+      this.getCatalogWithTags(this.callbacks[category])
     } else if (request === 'catalog::manifests') {
-      this.getCatalogWithManifests(this.receive)
+      this.getCatalogWithManifests(this.callbacks[category])
     } else {
       const requestSplit = request.split('::')
       if (requestSplit.length !== 2) {
@@ -74,8 +76,8 @@ function Registry (url) {
   }
 
   // Set callback function
-  this.onReceive = callback => {
-    this.receive = callback
+  this.onReceive = (category, callback) => {
+    this.callbacks[category] = callback
   }
 }
 

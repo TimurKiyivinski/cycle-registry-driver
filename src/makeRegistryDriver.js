@@ -7,7 +7,7 @@ export function makeRegistryDriver (url) {
   function registryDriver (outgoing$) {
     outgoing$.addListener({
       next: outgoing => {
-        registry.call(outgoing)
+        registry.call(outgoing.category, outgoing.request)
       },
       error: () => {
       },
@@ -15,14 +15,17 @@ export function makeRegistryDriver (url) {
       }
     })
 
-    // TODO: Select streams
-    return xs.create({
-      start: listener => {
-        registry.onReceive(data => listener.next(data))
-      },
-      stop: () => {
+    return {
+      select: function (category) {
+        return xs.create({
+          start: listener => {
+            registry.onReceive(category, data => listener.next(data))
+          },
+          stop: () => {
+          }
+        })
       }
-    })
+    }
   }
 
   return registryDriver

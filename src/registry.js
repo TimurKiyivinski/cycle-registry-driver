@@ -70,7 +70,24 @@ function Registry (url) {
     } else {
       const requestSplit = request.split('::')
       if (requestSplit.length !== 2) {
-        throw new Error('Invalid repository action')
+        throw new Error('Invalid registry driver request')
+      }
+      const image = requestSplit[0]
+      const action = requestSplit[1]
+      if (action === 'tags') {
+        this.fetchImageTags(image)
+          .then(res => res.json())
+          .then(data => {
+            this.callbacks[category](data)
+          })
+      } else if (action === 'manifest') {
+        this.fetchImageManifest(image)
+          .then(res => res.json())
+          .then(data => {
+            this.callbacks[category](data)
+          })
+      } else {
+        throw new Error(`Invalid repository action ${action}`)
       }
     }
   }

@@ -4,10 +4,13 @@ function Registry (url) {
   // TODO: Use Auth
   this.url = url
 
+  // Used to store the callbacks for all listeners
   this.callbacks = {}
 
+  // Gets tags from an image
   this.fetchImageTags = image => fetch(`${this.url}/v2/${image}/tags/list`)
 
+  // Get the manifest of a single image based on the tag
   this.fetchImageManifest = (image, tag) => {
     const headers = {
       Accept: 'application/vnd.docker.distribution.manifest.v2+json'
@@ -19,6 +22,7 @@ function Registry (url) {
     return fetch(`${this.url}/v2/${image}/manifests/${tag}`, fetchProperties)
   }
 
+  // Get the manifest for every tag of an image
   this.fetchImageManifests = image => {
     return new Promise((resolve, reject) => {
       this.fetchImageTags(image)
@@ -28,6 +32,8 @@ function Registry (url) {
             .map(tag => ({ name: repository.name, tag: tag, promise: this.fetchImageManifest(repository.name, tag) }))
           Promise.all(promises.map(repository => repository.promise)).then(data => {
             Promise.all(data.map(res => res.json())).then(manifests => {
+              // Merge the original promises object with the returned data since the docker manifest API
+              // does not return the image name or tag, unlike other API endpoints
               const repositories = manifests.map((manifest, i) => Object.assign({ name: promises[i].name, tag: promises[i].tag }, manifest))
               resolve(repositories)
             }).catch(e => reject(e))
@@ -36,12 +42,14 @@ function Registry (url) {
     })
   }
 
+  // Get the registry repository catalog
   this.getCatalog = callback => {
     fetch(`${this.url}/v2/_catalog`)
       .then(res => res.json())
       .then(callback)
   }
 
+  // Get the registry repository catalog with image tags
   this.getCatalogWithTags = callback => {
     this.getCatalog(data => {
       const promises = data.repositories.map(repository => this.fetchImageTags(repository))
@@ -51,6 +59,7 @@ function Registry (url) {
     })
   }
 
+  // Get the registry repository catalog with image manifests
   this.getCatalogWithManifests = callback => {
     this.getCatalog(data => {
       const promises = data.repositories.map(repository => this.fetchImageManifests(repository))
@@ -68,6 +77,7 @@ function Registry (url) {
     } else if (request === 'catalog::manifests') {
       this.getCatalogWithManifests(this.callbacks[category])
     } else {
+      // Fallback to repository actions
       const requestSplit = request.split('::')
       if (requestSplit.length !== 2) {
         throw new Error('Invalid registry driver request')

@@ -7,6 +7,7 @@ export function makeRegistryDriver (url) {
   function registryDriver (outgoing$) {
     outgoing$.addListener({
       next: outgoing => {
+        // Use the sink data to call the registry instance
         registry.call(outgoing.category, outgoing.request)
       },
       error: () => {
@@ -15,10 +16,14 @@ export function makeRegistryDriver (url) {
       }
     })
 
+    // Used by sources.registry.select('category') to assign a listener
+    // to the `registry` instance by assigning it a callback
     return {
       select: function (category) {
         return xs.create({
           start: listener => {
+            // The registry instance will create a callbacks[category]
+            // instance, assinging it the listener
             registry.onReceive(category, data => listener.next(data))
           },
           stop: () => {

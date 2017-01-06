@@ -82,7 +82,7 @@ function Registry (url) {
       if (requestSplit.length !== 2) {
         throw new Error('Invalid registry driver request')
       }
-      const image = requestSplit[0]
+      let image = requestSplit[0]
       const action = requestSplit[1]
       if (action === 'tags') {
         this.fetchImageTags(image)

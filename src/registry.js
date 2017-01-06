@@ -91,7 +91,13 @@ function Registry (url) {
             this.callbacks[category](data)
           })
       } else if (action === 'manifest') {
-        this.fetchImageManifest(image)
+        const imageSplit = image.split(':')
+        if (imageSplit.length !== 2) {
+          throw new Error('No image tag specified')
+        }
+        image = imageSplit[0]
+        const imageTag = imageSplit[1]
+        this.fetchImageManifest(image, imageTag)
           .then(res => res.json())
           .then(data => {
             this.callbacks[category](data)

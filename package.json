@@ -4,7 +4,7 @@
   "description": "Docker Registry driver for Cycle.js",
   "main": "dist/makeRegistryDriver.js",
   "scripts": {
-    "test": "standard",
+    "test": "standard ./src/*.js",
     "dist": "babel src -d dist --presets=es2015,babili --no-babelrc",
     "prepublish": "npm run dist"
   },

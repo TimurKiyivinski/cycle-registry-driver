@@ -13,38 +13,26 @@ Install with NPM
 ```
 npm install --save cycle-registry-driver
 ```
-Make sure to configure your build tool to compile the dependency from `node_modules/`. If you're using Webpack, your Babel loader entry might look like this:
-```
-{
-  test: /\.js$/,
-  loader: 'babel-loader',
-  exclude: /node_modules\/(?!cycle-registry-driver)/,
-  query: {
-    presets: ['es2015'],
-    plugins: ['babel-plugin-transform-es2015-destructuring', 'babel-plugin-transform-object-rest-spread']
-  }
-}
-```
 
 ## usage
 Import into your ES6 code:
-```
+```javascript
 import makeRegistryDriver from 'cycle-registry-driver'
 ```
 Register the driver:
-```
+```javascript
 const drivers = {
   ...
   registry: makeRegistryDriver('http://my.registry.localhost:5000')
 }
 ```
 Request format for `registry` sink:
-```
+```javascript
 {
   category: 'catalog',
   request: 'catalog::tags'
 }
-```
+```javascript
 Just like the HTTP driver, you can use `category` to filter streams:
 ```
 const repo$ = sources.registry.select('catalog')

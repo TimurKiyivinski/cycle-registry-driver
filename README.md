@@ -32,9 +32,9 @@ Request format for `registry` sink:
   category: 'catalog',
   request: 'catalog::tags'
 }
-```javascript
-Just like the HTTP driver, you can use `category` to filter streams:
 ```
+Just like the HTTP driver, you can use `category` to filter streams:
+```javascript
 const repo$ = sources.registry.select('catalog')
 ```
 
@@ -48,7 +48,7 @@ Registry catalog with tags, `catalog::tags`:
 {"repositories":[{"name":"alpine","tags":["latest"]},{"name":"tomcat","tags":["latest", "7"]}]}
 ```
 Registry with manifests, `catalog::manifests`:
-```
+```javascript
 {
     "repositories": [
         {

@@ -1,6 +1,6 @@
 {
   "name": "cycle-registry-driver",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Docker Registry driver for Cycle.js",
   "main": "dist/makeRegistryDriver.js",
   "scripts": {

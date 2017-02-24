@@ -26,6 +26,10 @@
   },
   "homepage": "https://github.com/TimurKiyivinski/cycle-registry-driver#readme",
   "dependencies": {
+    "@cycle/http": "^12.0.0",
+    "@cycle/xstream-run": "^4.2.0",
+    "install": "^0.8.7",
+    "npm": "^4.2.0",
     "xstream": "^9.3.0"
   },
   "devDependencies": {

@@ -1,147 +1,122 @@
 import xs from 'xstream'
-import { run } from '@cycle/run'
 import { makeHTTPDriver } from '@cycle/http'
 import flattenConcurrently from 'xstream/extra/flattenConcurrently'
 
-function makeRegistryDriver (url) {
-  function registryDriver (outgoing$) {
-    const callbacks = {}
+export function makeRegistryDriver (url) {
+  const HTTPDriver = makeHTTPDriver()
 
-    function main (sources) {
-      const outgoingCatalogs$ = outgoing$
-        .filter(outgoing => outgoing.request.startsWith('catalog'))
+  return function (outgoing$) {
+    const http$ = xs.create()
+    const source = HTTPDriver(http$)
 
-      const outgoingCatalog$ = outgoingCatalogs$
-        .filter(catalog => catalog.request === 'catalog')
+    const outgoingCatalogs$ = outgoing$
+      .filter(outgoing => outgoing.request.startsWith('catalog'))
 
-      const outgoingCatalogTags$ = outgoingCatalogs$
-        .filter(catalog => catalog.request === 'catalog::tags')
+    const outgoingCatalog$ = outgoingCatalogs$
+      .filter(catalog => catalog.request === 'catalog')
 
-      const outgoingCatalogManifests$ = outgoingCatalogs$
-        .filter(catalog => catalog.request === 'catalog::manifests')
+    const outgoingCatalogTags$ = outgoingCatalogs$
+      .filter(catalog => catalog.request === 'catalog::tags')
 
-      const catalog$ = outgoingCatalog$
-        .mapTo({
-          category: 'catalogs',
-          url: `${url}/v2/_catalog`
-        })
+    const outgoingCatalogManifests$ = outgoingCatalogs$
+      .filter(catalog => catalog.request === 'catalog::manifests')
 
-      const getCatalogs$ = sources.HTTP.select('catalogs')
-        .flatten()
-        .map(res => res.body)
+    const catalog$ = outgoingCatalog$
+      .mapTo({
+        category: 'catalogs',
+        url: `${url}/v2/_catalog`
+      })
 
-      const catalogTags$ = xs.combine(outgoingCatalogTags$, getCatalogs$)
-        .map(([outgoing, result]) => {
-          const http = result.repositories
-            .map(repository => ({
-              category: 'catalogTags',
-              url: `${url}/v2/${repository}/tags/list`
-            }))
+    const getCatalogs$ = source.select('catalogs')
+      .flatten()
+      .map(res => res.body)
 
-          return xs.fromArray(http)
-        })
-        .flatten()
+    const catalogTags$ = xs.combine(outgoingCatalogTags$, getCatalogs$)
+      .map(([outgoing, result]) => {
+        const http = result.repositories
+          .map(repository => ({
+            category: 'catalogTags',
+            url: `${url}/v2/${repository}/tags/list`
+          }))
 
-      const getCatalogTags$ = sources.HTTP.select('catalogTags')
-        .compose(flattenConcurrently)
-        .map(res => res.body)
-        .fold((tags, res) => [...tags, res], [])
+        return xs.fromArray(http)
+      })
+      .flatten()
 
-      const getAllCatalogTags$ = xs.combine(getCatalogs$, getCatalogTags$)
-        .filter(([res, tags]) => res.repositories.length === tags.length)
-        .map(([res, repositories]) => ({repositories}))
+    const getCatalogTags$ = source.select('catalogTags')
+      .compose(flattenConcurrently)
+      .map(res => res.body)
+      .fold((tags, res) => [...tags, res], [])
 
-      const catalogManifestsList$ = xs.combine(outgoingCatalogTags$, getAllCatalogTags$)
-        .map(([outgoing, result]) => {
-          const http = result.repositories
-            .map(repository => repository.tags.map(tag => ({
-              category: 'catalogManifests',
-              url: `${url}/v2/${repository.name}/manifests/${tag}`,
-              headers: {
-                Accept: 'application/vnd.docker.distribution.manifest.v2+json'
-              }
-            })))
-            .reduce((https, reqs) => [...https, ...reqs], [])
+    const getAllCatalogTags$ = xs.combine(getCatalogs$, getCatalogTags$)
+      .filter(([res, tags]) => res.repositories.length === tags.length)
+      .map(([res, repositories]) => ({repositories}))
 
-          return http
-        })
+    const catalogManifestsList$ = xs.combine(outgoingCatalogTags$, getAllCatalogTags$)
+      .map(([outgoing, result]) => {
+        const http = result.repositories
+          .map(repository => repository.tags.map(tag => ({
+            category: 'catalogManifests',
+            url: `${url}/v2/${repository.name}/manifests/${tag}`,
+            headers: {
+              Accept: 'application/vnd.docker.distribution.manifest.v2+json'
+            }
+          })))
+          .reduce((https, reqs) => [...https, ...reqs], [])
 
-      const catalogManifests$ = catalogManifestsList$
-        .map(http => xs.fromArray(http))
-        .flatten()
+        return http
+      })
 
-      const getCatalogManifests$ = sources.HTTP.select('catalogManifests')
-        .compose(flattenConcurrently)
-        .map(res => res.body)
-        .fold((tags, res) => [...tags, res], [])
+    const catalogManifests$ = catalogManifestsList$
+      .map(http => xs.fromArray(http))
+      .flatten()
 
-      const getAllCatalogManifests$ = xs.combine(catalogManifestsList$, getCatalogManifests$)
-        .filter(([list, manifests]) => list.length === manifests.length)
-        .map(([list, repositories]) => ({repositories}))
+    const getCatalogManifests$ = source.select('catalogManifests')
+      .compose(flattenConcurrently)
+      .map(res => res.body)
+      .fold((tags, res) => [...tags, res], [])
 
-      const resultCatalog$ = xs.combine(outgoingCatalog$, getCatalogs$)
-        .map(([outgoing, result]) => ({
-          category: outgoing.category,
-          content: result
-        }))
+    const getAllCatalogManifests$ = xs.combine(catalogManifestsList$, getCatalogManifests$)
+      .filter(([list, manifests]) => list.length === manifests.length)
+      .map(([list, repositories]) => ({repositories}))
 
-      const resultCatalogTags$ = xs.combine(outgoingCatalogTags$, getAllCatalogTags$)
-        .filter(([outgoing, result]) => outgoing)
-        .map(([outgoing, result]) => ({
-          category: outgoing.category,
-          content: result
-        }))
+    const resultCatalog$ = xs.combine(outgoingCatalog$, getCatalogs$)
+      .map(([outgoing, result]) => ({
+        category: outgoing.category,
+        content: result
+      }))
 
-      const resultCatalogManifests$ = xs.combine(outgoingCatalogManifests$, getAllCatalogManifests$)
-        .filter(([outgoing, result]) => outgoing)
-        .map(([outgoing, result]) => ({
-          category: outgoing.category,
-          content: result
-        }))
+    const resultCatalogTags$ = xs.combine(outgoingCatalogTags$, getAllCatalogTags$)
+      .filter(([outgoing, result]) => outgoing)
+      .map(([outgoing, result]) => ({
+        category: outgoing.category,
+        content: result
+      }))
 
-      const http$ = xs.merge(
-        catalog$,
-        catalogTags$,
-        catalogManifests$
-      )
+    const resultCatalogManifests$ = xs.combine(outgoingCatalogManifests$, getAllCatalogManifests$)
+      .filter(([outgoing, result]) => outgoing)
+      .map(([outgoing, result]) => ({
+        category: outgoing.category,
+        content: result
+      }))
 
-      const result$ = xs.merge(
-        resultCatalog$,
-        resultCatalogTags$,
-        resultCatalogManifests$
-      )
+    const sink$ = xs.merge(
+      catalog$,
+      catalogTags$,
+      catalogManifests$
+    )
+    http$.imitate(sink$)
 
-      return {
-        HTTP: http$,
-        proxy: result$
-      }
-    }
-
-    const drivers = {
-      HTTP: makeHTTPDriver(),
-      proxy: proxy$ => {
-        proxy$.addListener({
-          next: result => {
-            callbacks[result.category](result.content)
-          }
-        })
-      }
-    }
-
-    run(main, drivers)
+    const result$ = xs.merge(
+      resultCatalog$,
+      resultCatalogTags$,
+      resultCatalogManifests$
+    )
 
     return {
-      select: category => xs.create({
-        start: listener => {
-          callbacks[category] = result => listener.next(result)
-        },
-        stop: () => {
-        }
-      })
+      select: category => result$.filter(result => result.category === category)
     }
   }
-
-  return registryDriver
 }
 
 export default makeRegistryDriver

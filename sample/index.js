@@ -1,11 +1,11 @@
 const xs = require('xstream').default
-const makeRegistryDriver = require('../src/makeRegistryDriver')
+const makeRegistryDriver = require('../dist/makeRegistryDriver').default
 const Cycle = require('@cycle/xstream-run')
 
 function makeLogDriver () {
   function logDriver (outgoing$) {
     outgoing$.addListener({
-      next: log => console.log(log)
+      next: log => console.log(JSON.stringify(log))
     })
   }
 
